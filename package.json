@@ -1,0 +1,25 @@
+{
+  "name": "pod-configuration",
+  "version": "0.0.1",
+  "description": "pod-configuration",
+  "scripts": {
+    "start": "node..."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oceanprotocol/pod-configuration.git"
+  },
+  "keywords": [],
+  "author": "Ocean Protocol <devops@oceanprotocol.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/oceanprotocol/pod-configuration/issues"
+  },
+  "peerDependencies": {},
+  "dependencies": {
+    "@oceanprotocol/squid": "file:../squid-js"
+  },
+  "devDependencies": {
+    "truffle-privatekey-provider": "^1.3.0"
+  }
+}
