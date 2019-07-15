@@ -2,7 +2,7 @@
   "@context": "https://w3id.org/future-method/v1",
   "authentication": [],
   "created": "2019-04-09T19:02:11Z",
-  "id": "did:op:c183b7ca5fd64f3aa03b06968e51fda070ff0eeb226643babd6b0dbd84d9d05a",
+  "id": "did:op:64c1015e3b7d4eeb8e6ecf2e99a1faaa87ac956f110944d790c4a12cf2b7eb5e",
   "proof": {
     "created": "2019-04-09T19:02:11Z",
     "creator": "0x00Bd138aBD70e2F00903268F3Db08f2D25677C9e",
@@ -11,7 +11,7 @@
   },
   "publicKey": [
     {
-      "id": "did:op:64e768e76d914abfb784756da58e8a92b69d902128d446f6af8b6be4274af74f",
+      "id": "did:op:426f617611174c24899908153e25cb7e15cce152262b4bdebc0725b4c81b43b7",
       "owner": "0x00Bd138aBD70e2F00903268F3Db08f2D25677C9e",
       "type": "EthereumECDSAKey"
     }
@@ -47,7 +47,7 @@
               "index": 0,
               "stageType": "Filtering",
               "requirements": {
-                "computeServiceId": "did:op:7a9d80a4f92244808d301e4f0b870b8000f62743f22746f2bded3c25afcaa6b4",
+                "computeServiceId": "did:op:90b161e0120f4af59e8512d264adc1a8cc8af3b30e1d47208e88f9cce0479677",
                 "serviceDefinitionId": "1",
                 "serverId": "1",
                 "serverInstances": 1,
@@ -60,15 +60,15 @@
               "input": [
                 {
                   "index": 0,
-                  "id": "did:op:2709ed444bce42c38b58f5e9ce6912bd1badb7479baa43e398fb08eff518c5e1"
+                  "id": "did:op:7bd8a6ee05c94bd984e29a2f4fdce74b7333e04a72cd4049b304060677a77d04"
                 },
                 {
                   "index": 1,
-                  "id": "did:op:838fd8a8247f47faa680293754de021abebf49fea02a49de9e57e6a4d65cf459"
+                  "id": "did:op:9652b139b89948f5a5cd7960b364547d30f79154520a477bb5cdce971125b49f"
                 }
               ],
               "transformation": {
-                "id": "did:op:0647e6afa38444c29d290a5fd3ab30c920c3342039bb47ab8f5054fc06197591"
+                "id": "did:op:349b441ac2eb40caafc1d3ae426536cb6cd7e601a8614b4fbc5a7d7a2d2c8b1d"
               },
               "output": {}
             },
@@ -76,7 +76,7 @@
               "index": 1,
               "stageType": "Transformation",
               "requirements": {
-                "computeServiceId": "did:op:4cd3a19aaa9d43f89c6184000489172ef66e1fd245f341dd885730a2d4f9ba11",
+                "computeServiceId": "did:op:5e887088652848778fe65ddf6f07855b7bece25d74b3441db8ff828261813f33",
                 "serviceDefinitionId": "1",
                 "serverId": "2",
                 "serverInstances": 1,
@@ -93,7 +93,7 @@
                 }
               ],
               "transformation": {
-                "id": "did:op:13a283b986fd40f3845ae3605ea7c444d63305d7c4984f8592a28a418f8f70c8"
+                "id": "did:op:f0093d8db4f94bc2ae9749c9b5f6ec547694d10e4770456fbb4aec970af1f190"
               },
               "output": {}
             }

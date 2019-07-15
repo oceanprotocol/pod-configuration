@@ -1,20 +1,40 @@
+#!/usr/bin/env node
 
+const program = require('commander')
 const { Ocean, Account } = require('@oceanprotocol/squid')
-const PrivateKeyProvider = require('truffle-privatekey-provider')
 const Wallet = require('ethereumjs-wallet')
 const fs = require('fs')
 
-const credentials = '***'
-const password = '***'
+program
+  .option('-w, --workflow <json>', 'Workflow configuraton')
+  .option('-c, --credentials <json>', 'Creadentials file')
+  .option('-p, --password <password>', 'Creadentials password')
+  .option('-i, --inputs <path>', 'Input path')
+  .option('-t, --transformations <path>', 'Transformations path')
+  .option('-v, --verbose', 'Enables verbose mode')
+  .action(() => {
+    let {workflow, credentials, password, inputs, transformations, verbose} = program
+    workflow = JSON.parse(workflow)
+    const config = {workflow, credentials, password, inputs, transformations, verbose}
 
-const dir = '***'
-const inputsDir = dir + '/inputs'
-const transformationDir = dir + '/transformations'
+    main(config)
+      .then(() => console.log('Finished!'))
+      .catch(e => console.error(e))
+  })
+  .parse(process.argv)
 
-;(async function() {
+async function main({
+  workflow,
+  credentials,
+  password,
+  inputs: inputsDir,
+  transformations: transformationsDir,
+  verbose,
+}) {
+
   // Config
-  const credentialsWallet = Wallet.fromV3(fs.readFileSync(credentials).toString(), password, true)
-  const publicKey = credentialsWallet.getAddress().toString('hex')
+  const credentialsWallet = Wallet.fromV3(credentials, password, true)
+  const publicKey = '0x' + credentialsWallet.getAddress().toString('hex')
 
   const nodeUri = 'http://localhost:8545'
   const ocean = await Ocean.getInstance({
@@ -24,7 +44,7 @@ const transformationDir = dir + '/transformations'
     secretStoreUri: 'http://localhost:12001',
     parityUri: 'http://localhost:9545',
     threshold: 0,
-    verbose: false,
+    verbose,
   })
 
   const consumer = new Account(publicKey, ocean.instanceConfig)
@@ -50,7 +70,7 @@ const transformationDir = dir + '/transformations'
 
   // Consume the assets
   const consumeToFolder = folder => async did => {
-    const ddo = await ocean.assets.resolve()
+    const ddo = await ocean.assets.resolve(did)
     await ocean.assets.consume(
       undefined,
       did,
@@ -63,10 +83,8 @@ const transformationDir = dir + '/transformations'
   }
 
   const consumeInputs = inputs.map(consumeToFolder(inputsDir))
-  const consumeTransformations = transformations.map(consumeToFolder(transformationDir))
+  const consumeTransformations = transformations.map(consumeToFolder(transformationsDir))
 
   await Promise.all(consumeInputs)
   await Promise.all(consumeTransformations)
-})()
-  .then(() => console.log('Finished!'))
-  .catch(e => console.error(e))
+}
