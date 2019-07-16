@@ -39,9 +39,6 @@ async function main({
   const nodeUri = 'http://localhost:8545'
   const ocean = await Ocean.getInstance({
     nodeUri,
-    aquariusUri: 'http://172.15.0.15:5000',
-    brizoUri: 'http://localhost:8030',
-    secretStoreUri: 'http://localhost:12001',
     parityUri: 'http://localhost:9545',
     threshold: 0,
     verbose,
