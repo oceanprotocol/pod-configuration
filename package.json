@@ -17,7 +17,7 @@
   },
   "peerDependencies": {},
   "dependencies": {
-    "@oceanprotocol/squid": "^0.6.4",
+    "@oceanprotocol/squid": "^0.6.5",
     "commander": "^2.20.0",
     "ethereumjs-wallet": "^0.6.3"
   },
