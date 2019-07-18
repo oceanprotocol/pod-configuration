@@ -7,15 +7,16 @@ const fs = require('fs')
 
 program
   .option('-w, --workflow <json>', 'Workflow configuraton')
+  .option('-n, --node <url>', 'Node URL')
   .option('-c, --credentials <json>', 'Creadentials file')
   .option('-p, --password <password>', 'Creadentials password')
   .option('-i, --inputs <path>', 'Input path')
   .option('-t, --transformations <path>', 'Transformations path')
   .option('-v, --verbose', 'Enables verbose mode')
   .action(() => {
-    let {workflow, credentials, password, inputs, transformations, verbose} = program
+    let {workflow, node, credentials, password, inputs, transformations, verbose} = program
     workflow = JSON.parse(workflow)
-    const config = {workflow, credentials, password, inputs, transformations, verbose}
+    const config = {workflow, node, credentials, password, inputs, transformations, verbose}
 
     main(config)
       .then(() => console.log('Finished!'))
@@ -25,6 +26,7 @@ program
 
 async function main({
   workflow,
+  node: nodeUri,
   credentials,
   password,
   inputs: inputsDir,
@@ -36,10 +38,9 @@ async function main({
   const credentialsWallet = Wallet.fromV3(credentials, password, true)
   const publicKey = '0x' + credentialsWallet.getAddress().toString('hex')
 
-  const nodeUri = 'http://localhost:8545'
   const ocean = await Ocean.getInstance({
     nodeUri,
-    parityUri: 'http://localhost:9545',
+    parityUri: nodeUri,
     threshold: 0,
     verbose,
   })
