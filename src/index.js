@@ -6,33 +6,32 @@ const Wallet = require('ethereumjs-wallet')
 const fs = require('fs')
 
 program
-  .option('-w, --workflow <json>', 'Workflow configuraton')
+  .option('-w, --workflow <path>', 'Workflow configuraton path')
   .option('-n, --node <url>', 'Node URL')
   .option('-c, --credentials <json>', 'Creadentials file')
   .option('-p, --password <password>', 'Creadentials password')
-  .option('-i, --inputs <path>', 'Input path')
-  .option('-t, --transformations <path>', 'Transformations path')
+  .option('-l, --path <path>', 'Volume path')
   .option('-v, --verbose', 'Enables verbose mode')
   .action(() => {
-    let {workflow, node, credentials, password, inputs, transformations, verbose} = program
-    workflow = JSON.parse(workflow)
-    const config = {workflow, node, credentials, password, inputs, transformations, verbose}
+    let {workflow, node, credentials, password, path, verbose} = program
+    const config = {workflow, node, credentials, password, path, verbose}
 
     main(config)
-      .then(() => console.log('Finished!'))
       .catch(e => console.error(e))
   })
   .parse(process.argv)
 
 async function main({
-  workflow,
+  workflow: workflowPath,
   node: nodeUri,
   credentials,
   password,
-  inputs: inputsDir,
-  transformations: transformationsDir,
+  path,
   verbose,
 }) {
+
+  const inputsDir = `${path}/inputs`
+  const transformationsDir = `${path}/transformations`
 
   // Config
   const credentialsWallet = Wallet.fromV3(credentials, password, true)
@@ -51,7 +50,8 @@ async function main({
   // DIDs to be consumed
   const cleanList = (id, i, list) => id && list.indexOf(id) === i
 
-  const {stages} = workflow.service
+  const {stages} = JSON.parse(fs.readFileSync(workflowPath).toString())
+    .service
     .find(({type}) => type === 'Metadata')
     .metadata
     .workflow
