@@ -10,6 +10,6 @@ ENTRYPOINT node src/index.js \
   --node "$NODE" \
   --credentials "$CREDENTIALS" \
   --password "$PASSWORD" \
-  --inputs "$INPUTS" \
-  --transformations "$TRANSFORMATIONS" \
-  --verbose
+  --path "$VOLUME" \
+  --verbose \
+  # > "$VOLUME/pod-configuration-logs.txt" | tee file
