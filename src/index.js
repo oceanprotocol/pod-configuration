@@ -68,16 +68,24 @@ async function main({
 
   // Consume the assets
   const consumeToFolder = folder => async did => {
-    const ddo = await ocean.assets.resolve(did)
-    await ocean.assets.consume(
-      undefined,
-      did,
-      ddo.findServiceByType('Access').serviceDefinitionId,
-      consumer,
-      folder,
-      undefined,
-      true
-    )
+    try {
+      const ddo = await ocean.assets.resolve(did)
+      await ocean.assets.consume(
+        undefined,
+        did,
+        ddo.findServiceByType('Access').serviceDefinitionId,
+        consumer,
+        folder,
+        undefined,
+        true
+      )
+    } catch (error) {
+      console.error({
+        did,
+        error,
+      })
+      throw error
+    }
   }
 
   const consumeInputs = inputs.map(consumeToFolder(inputsDir))
