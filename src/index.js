@@ -59,7 +59,7 @@ async function main({
   const {stages} = JSON.parse(fs.readFileSync(workflowPath).toString())
     .service
     .find(({type}) => type === 'Metadata')
-    .metadata
+    .attributes
     .workflow
 
   const inputs = stages
