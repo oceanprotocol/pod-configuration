@@ -50,6 +50,10 @@ async function main({
     verbose,
   })
 
+  if (verbose) {
+    console.log(await ocean.versions.get())
+  }
+
   const consumer = new Account(publicKey, ocean.instanceConfig)
   consumer.setPassword(password)
 
@@ -79,7 +83,7 @@ async function main({
       await ocean.assets.consume(
         undefined,
         did,
-        ddo.findServiceByType('Access').serviceDefinitionId,
+        ddo.findServiceByType('access').index,
         consumer,
         folder,
         undefined,
