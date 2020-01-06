@@ -5,6 +5,12 @@ const { Ocean, Account } = require('@oceanprotocol/squid')
 const Wallet = require('ethereumjs-wallet')
 const fs = require('fs')
 
+const got=require("got")
+const stream = require('stream');
+const {promisify} = require('util');
+
+const pipeline = promisify(stream.pipeline);
+
 program
   .option('-w, --workflow <path>', 'Workflow configuraton path')
   .option('-n, --node <url>', 'Node URL')
@@ -12,9 +18,13 @@ program
   .option('-p, --password <password>', 'Creadentials password')
   .option('-l, --path <path>', 'Volume path')
   .option('-v, --verbose', 'Enables verbose mode')
+  .option('-b, --brizo <url>', 'Brizo URL')
+  .option('-a, --address <address>', 'Brizo Address')
+  .option('-q, --aquarius <url>', 'Aquarius URL')
+  .option('-s, --secretstore <url>', 'SecretStore URL')
   .action(() => {
-    let {workflow, node, credentials, password, path, verbose} = program
-    const config = {workflow, node, credentials, password, path, verbose}
+    let {workflow, node, credentials, password, path, verbose,brizo,address,aquarius,secretstore} = program
+    const config = {workflow, node, credentials, password, path, verbose,brizo,address,aquarius,secretstore}
 
     main(config)
       .then(() => {
@@ -34,73 +44,110 @@ async function main({
   password,
   path,
   verbose,
+  brizo,
+  address,
+  aquarius,
+  secretstore
 }) {
 
   const inputsDir = `${path}/inputs`
+  fs.mkdirSync(inputsDir)
   const transformationsDir = `${path}/transformations`
-
-  // Config
+  fs.mkdirSync(transformationsDir)
+  /* //Config
   const credentialsWallet = Wallet.fromV3(credentials, password, true)
   const publicKey = '0x' + credentialsWallet.getAddress().toString('hex')
-
+  console.log("Addr:"+publicKey)
   const ocean = await Ocean.getInstance({
-    nodeUri,
+    nodeUri: nodeUri,
     parityUri: nodeUri,
+    aquariusUri: aquarius,
+    brizoUri: brizo,
+    brizoAddress: address,
+    secretStoreUri:secretstore,
     threshold: 0,
-    verbose,
+    verbose:true,
   })
-
+ 
   if (verbose) {
     console.log(await ocean.versions.get())
+    console.log("Done ocean dump")
   }
 
   const consumer = new Account(publicKey, ocean.instanceConfig)
   consumer.setPassword(password)
-
+  */
   // DIDs to be consumed
-  const cleanList = (id, i, list) => id && list.indexOf(id) === i
-
   const {stages} = JSON.parse(fs.readFileSync(workflowPath).toString())
-    .service
+    /*.service
     .find(({type}) => type === 'Metadata')
     .attributes
     .workflow
-
-  const inputs = stages
+*/
+    console.log("Stages:"+JSON.stringify(stages))
+  
+    
+    const inputs = stages
     .reduce((acc, {input}) => [...acc, ...input], [])
-    .map(({id}) => id)
-    .filter(cleanList)
+    
+    
+console.log("Inputs:")
+console.log(inputs)
 
-  const transformations = stages
-    .reduce((acc, {transformation}) => [...acc, transformation], [])
-    .map(({id}) => id)
-    .filter(cleanList)
 
-  // Consume the assets
-  const consumeToFolder = folder => async did => {
-    try {
-      const ddo = await ocean.assets.resolve(did)
-      await ocean.assets.consume(
-        undefined,
-        did,
-        ddo.findServiceByType('access').index,
-        consumer,
-        folder,
-        undefined,
-        true
-      )
-    } catch (error) {
-      console.error({
-        did,
-        error,
-      })
-      throw error
+    for (var i = 0; i < inputs.length; i++) {
+        var ainput=inputs[i];
+        var folder=inputsDir+"/"+ainput.id.replace("did:op:","")+"/";
+        try{
+          fs.mkdirSync(folder)
+        }catch(e){ }
+        for (x = 0; x < ainput.url.length; x++) {
+                console.log("===");
+                var aurl=ainput.url[x];
+                var localfile=folder+x;
+                await downloadurl(aurl, localfile)
+        }
     }
-  }
 
-  const consumeInputs = inputs.map(consumeToFolder(inputsDir))
-  const consumeTransformations = transformations.map(consumeToFolder(transformationsDir))
+    const algos = stages
+    .reduce((acc, {algorithm}) => [...acc, algorithm], [])
+    console.log("Algos:")
+    console.log(algos)
+    var folder=transformationsDir+"/";
+    try{ fs.mkdirSync(folder)} catch(e){}
+    var localfile=folder+"algorithm";
+    await downloadurl(algos[0].url, localfile)
+    //make the file executable
+    try{fs.chmodSync(localfile, '777');}catch(e){}
+    console.log("Alg:")
+    console.log(fs.readFileSync(localfile).toString())
 
-  await Promise.all(consumeInputs)
-  await Promise.all(consumeTransformations)
+    
 }
+
+
+
+
+async function downloadurl(url, target) {
+  /**
+   * Download URL to target
+   */
+  console.log("Downloading "+url+" to "+target);
+  try{
+    
+    await pipeline(got.stream(url),fs.createWriteStream(target))
+    console.log("Done download???")
+  }
+  catch(e){
+    console.log("Download error")
+    console.log(e)
+  }
+  try{
+    var stats=fs.statSync(target)
+    console.log("Stats for "+target+":"+JSON.stringify(stats))
+  }catch(e){
+    console.log("Failed stats for "+target)
+  }
+}
+
+
