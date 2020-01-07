@@ -116,7 +116,12 @@ console.log(inputs)
     var folder=transformationsDir+"/";
     try{ fs.mkdirSync(folder)} catch(e){}
     var localfile=folder+"algorithm";
-    await downloadurl(algos[0].url, localfile)
+    if(algos[0].rawcode!=null){
+        fs.writeFileSync(localfile,algos[0].rawcode)
+    }
+    else{
+        await downloadurl(algos[0].url, localfile)
+    }
     //make the file executable
     try{fs.chmodSync(localfile, '777');}catch(e){}
     console.log("Alg:")
