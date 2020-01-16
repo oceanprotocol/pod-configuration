@@ -4,27 +4,33 @@ const program = require('commander')
 const { Ocean, Account } = require('@oceanprotocol/squid')
 const Wallet = require('ethereumjs-wallet')
 const fs = require('fs')
-
+const pg = require('pg');
 const got=require("got")
 const stream = require('stream');
 const {promisify} = require('util');
 
 const pipeline = promisify(stream.pipeline);
 
+var pgpool=new pg.Pool({
+  user: process.env.POSTGRES_USER,
+  database: process.env.POSTGRES_DB,
+  password: process.env.POSTGRES_PASSWORD,
+  host: process.env.POSTGRES_HOST,
+  port: process.env.POSTGRES_PORT,
+  max: 10, // max number of clients in the pool
+  idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
+})
+
+
 program
   .option('-w, --workflow <path>', 'Workflow configuraton path')
-  .option('-n, --node <url>', 'Node URL')
-  .option('-c, --credentials <json>', 'Creadentials file')
-  .option('-p, --password <password>', 'Creadentials password')
   .option('-l, --path <path>', 'Volume path')
+  .option('--workflowid <workflowid>', 'Workflow id')
   .option('-v, --verbose', 'Enables verbose mode')
-  .option('-b, --brizo <url>', 'Brizo URL')
-  .option('-a, --address <address>', 'Brizo Address')
-  .option('-q, --aquarius <url>', 'Aquarius URL')
-  .option('-s, --secretstore <url>', 'SecretStore URL')
   .action(() => {
-    let {workflow, node, credentials, password, path, verbose,brizo,address,aquarius,secretstore} = program
-    const config = {workflow, node, credentials, password, path, verbose,brizo,address,aquarius,secretstore}
+    let {workflow,  path, workflowid,verbose} = program
+    const config = {workflow, path, workflowid,verbose}
+    
 
     main(config)
       .then(() => {
@@ -39,62 +45,25 @@ program
 
 async function main({
   workflow: workflowPath,
-  node: nodeUri,
-  credentials,
-  password,
   path,
-  verbose,
-  brizo,
-  address,
-  aquarius,
-  secretstore
+  workflowid,
+  verbose
 }) {
 
+  let status=30;
   const inputsDir = `${path}/inputs`
   fs.mkdirSync(inputsDir)
   const transformationsDir = `${path}/transformations`
   fs.mkdirSync(transformationsDir)
-  /* //Config
-  const credentialsWallet = Wallet.fromV3(credentials, password, true)
-  const publicKey = '0x' + credentialsWallet.getAddress().toString('hex')
-  console.log("Addr:"+publicKey)
-  const ocean = await Ocean.getInstance({
-    nodeUri: nodeUri,
-    parityUri: nodeUri,
-    aquariusUri: aquarius,
-    brizoUri: brizo,
-    brizoAddress: address,
-    secretStoreUri:secretstore,
-    threshold: 0,
-    verbose:true,
-  })
- 
-  if (verbose) {
-    console.log(await ocean.versions.get())
-    console.log("Done ocean dump")
-  }
-
-  const consumer = new Account(publicKey, ocean.instanceConfig)
-  consumer.setPassword(password)
-  */
-  // DIDs to be consumed
+  
   const {stages} = JSON.parse(fs.readFileSync(workflowPath).toString())
     /*.service
     .find(({type}) => type === 'Metadata')
     .attributes
     .workflow
 */
-    console.log("Stages:"+JSON.stringify(stages))
-  
-    
     const inputs = stages
     .reduce((acc, {input}) => [...acc, ...input], [])
-    
-    
-console.log("Inputs:")
-console.log(inputs)
-
-
     for (var i = 0; i < inputs.length; i++) {
         var ainput=inputs[i];
         var folder=inputsDir+"/"+ainput.id.replace("did:op:","")+"/";
@@ -105,31 +74,55 @@ console.log(inputs)
                 console.log("===");
                 var aurl=ainput.url[x];
                 var localfile=folder+x;
-                await downloadurl(aurl, localfile)
+                let downloadresult=await downloadurl(aurl, localfile)
+                if(downloadresult!=true){
+                  //download failed, bail out
+                  status=31;
+                }
         }
     }
 
-    const algos = stages
-    .reduce((acc, {algorithm}) => [...acc, algorithm], [])
-    console.log("Algos:")
-    console.log(algos)
-    var folder=transformationsDir+"/";
-    try{ fs.mkdirSync(folder)} catch(e){}
-    var localfile=folder+"algorithm";
-    if(algos[0].rawcode!=null){
-        fs.writeFileSync(localfile,algos[0].rawcode)
+    if(status==30){
+      //no need to download algo if input failed
+      const algos = stages.reduce((acc, {algorithm}) => [...acc, algorithm], [])
+      var folder=transformationsDir+"/";
+      try{ fs.mkdirSync(folder)} catch(e){}
+        var localfile=folder+"algorithm";
+        if(algos[0].rawcode!=null){
+          fs.writeFileSync(localfile,algos[0].rawcode)
+        }
+        else{
+          let downloadresult=await downloadurl(algos[0].url, localfile)
+          if(downloadresult!=true){
+            //download failed, bail out
+            status=32;
+          }
+        }
+        //make the file executable
+        try{fs.chmodSync(localfile, '777');}catch(e){}
     }
-    else{
-        await downloadurl(algos[0].url, localfile)
+    //update sql status
+    try{
+        var query_up='UPDATE jobs SET status=$1,statusText=$2 WHERE workflowId=$3';
+        var sql_arr=Array();
+        sql_arr[0]=status;
+        switch(status){
+          default:sql_arr[1]='Provisioning success'
+                break;
+          case 31: sql_arr[1]='Data provisioning failed'
+              break;
+          case 32: sql_arr[1]='Algorithm provisioning failed'
+                break;
+        }
+        sql_arr[2]=workflowid
+        await pgpool.query(query_up,sql_arr);
+        console.log("Updated "+workflowid+" with status "+status)
     }
-    //make the file executable
-    try{fs.chmodSync(localfile, '777');}catch(e){}
-    console.log("Alg:")
-    console.log(fs.readFileSync(localfile).toString())
-
-    
+    catch(e){
+      console.error("Failed sql status update")
+      console.error(e)
+    }
 }
-
 
 
 
@@ -137,6 +130,7 @@ async function downloadurl(url, target) {
   /**
    * Download URL to target
    */
+  let retval=true;
   console.log("Downloading "+url+" to "+target);
   try{
     
@@ -146,6 +140,7 @@ async function downloadurl(url, target) {
   catch(e){
     console.log("Download error")
     console.log(e)
+    retval=false;
   }
   try{
     var stats=fs.statSync(target)
@@ -153,6 +148,7 @@ async function downloadurl(url, target) {
   }catch(e){
     console.log("Failed stats for "+target)
   }
+  return(retval)
 }
 
 
