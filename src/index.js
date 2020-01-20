@@ -89,7 +89,16 @@ async function main({
       try{ fs.mkdirSync(folder)} catch(e){}
         var localfile=folder+"algorithm";
         if(algos[0].rawcode!=null){
-          fs.writeFileSync(localfile,algos[0].rawcode)
+          if(algos[0].rawcode.length>10){
+            fs.writeFileSync(localfile,algos[0].rawcode)
+          }
+          else{
+            let downloadresult=await downloadurl(algos[0].url, localfile)
+            if(downloadresult!=true){
+                //download failed, bail out
+                status=32;
+            }  
+          }
         }
         else{
           let downloadresult=await downloadurl(algos[0].url, localfile)
