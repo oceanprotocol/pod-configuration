@@ -44,7 +44,7 @@ program
 async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   let status = 30
   const inputsDir = `${path}/inputs`
-  fs.mkdirSync(inputsDir)
+  //fs.mkdirSync(inputsDir)   - /data/inputs is already mounted, no need to create it
   const transformationsDir = `${path}/transformations`
   fs.mkdirSync(transformationsDir)
 
