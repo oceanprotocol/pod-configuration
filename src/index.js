@@ -79,11 +79,6 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     // no need to download algo if input failed
     const algos = stages.reduce((acc, { algorithm }) => [...acc, algorithm], [])
     folder = transformationsDir + '/'
-    try {
-      fs.mkdirSync(folder)
-    } catch (e) {
-      console.error(e)
-    }
     localfile = folder + 'algorithm'
     if (algos[0].rawcode != null) {
       if (algos[0].rawcode.length > 10) {
