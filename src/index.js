@@ -137,17 +137,11 @@ async function downloadurl(url, target) {
   console.log('Downloading ' + url + ' to ' + target)
   try {
     await pipeline(got.stream(url), fs.createWriteStream(target))
-    console.log('Done download???')
   } catch (e) {
     console.log('Download error')
     console.log(e)
     retval = false
   }
-  try {
-    var stats = fs.statSync(target)
-    console.log('Stats for ' + target + ':' + JSON.stringify(stats))
-  } catch (e) {
-    console.log('Failed stats for ' + target)
-  }
+  
   return retval
 }
