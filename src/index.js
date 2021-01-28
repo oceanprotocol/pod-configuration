@@ -82,7 +82,8 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     //fetch the ddo as well
     try {
       const ddo = await ocean.assets.resolve(ainput.id)
-      fs.writeFileSync(ddoDir + '/' + ainput.id, JSON.stringify(ddo));
+      console.log(ddo)
+      fs.writeFileSync(ddoDir + '/' + ainput.id.replace('did:op:', ''), JSON.stringify(ddo));
       console.log("DDO saved to "+ddoDir + '/' + ainput.id)
     } catch (e) {
       console.error('Failed to fetch ddo')
@@ -121,7 +122,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     if (algos[0].id) {
       try {
         const ddo = await ocean.assets.resolve(algos[0].id)
-        fs.writeFileSync(ddoDir + '/' + algos[0].id, JSON.stringify(ddo));
+        fs.writeFileSync(ddoDir + '/' + algos[0].id.replace('did:op:', ''), JSON.stringify(ddo));
         console.log("DDO saved to "+ddoDir + '/' + algos[0].id)
       } catch (e) {
         console.error('Failed to fetch ddo')
