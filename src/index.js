@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-
 const program = require('commander')
 // const { Ocean, Account } = require('@oceanprotocol/squid')
 // const Wallet = require('ethereumjs-wallet')
 const fs = require('fs')
+const { Ocean, ConfigHelper } = require('@oceanprotocol/lib')
 const pg = require('pg')
 const got = require('got')
 const stream = require('stream')
@@ -47,8 +47,14 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   //fs.mkdirSync(inputsDir)   - /data/inputs is already mounted, no need to create it
   const transformationsDir = `${path}/transformations`
   fs.mkdirSync(transformationsDir)
-
+  const ddoDir = `${path}/ddos`
+  fs.mkdirSync(ddoDir)
   const { stages } = JSON.parse(fs.readFileSync(workflowPath).toString())
+  const oceanconfig = new ConfigHelper().getConfig('development')
+  oceanconfig.metadataCacheUri = stages[0].output.metadataUri
+  console.log("Set metadatacache to "+oceanconfig.metadataCacheUri)
+  const ocean = await Ocean.getInstance(oceanconfig)
+
   /* .service
     .find(({type}) => type === 'Metadata')
     .attributes
@@ -72,6 +78,15 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
         // download failed, bail out
         status = 31
       }
+    }
+    //fetch the ddo as well
+    try {
+      const ddo = await ocean.assets.resolve(ainput.id)
+      fs.writeFileSync(ddoDir + '/' + ainput.id, JSON.stringify(ddo));
+      console.log("DDO saved to "+ddoDir + '/' + ainput.id)
+    } catch (e) {
+      console.error('Failed to fetch ddo')
+      console.error(e)
     }
   }
 
@@ -102,6 +117,16 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
       fs.chmodSync(localfile, '777')
     } catch (e) {
       console.error(e)
+    }
+    if (algos[0].id) {
+      try {
+        const ddo = await ocean.assets.resolve(algos[0].id)
+        fs.writeFileSync(ddoDir + '/' + algos[0].id, JSON.stringify(ddo));
+        console.log("DDO saved to "+ddoDir + '/' + algos[0].id)
+      } catch (e) {
+        console.error('Failed to fetch ddo')
+        console.error(e)
+      }
     }
   }
   // update sql status
@@ -142,6 +167,6 @@ async function downloadurl(url, target) {
     console.log(e)
     retval = false
   }
-  
+
   return retval
 }

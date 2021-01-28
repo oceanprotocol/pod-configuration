@@ -18,8 +18,7 @@
   },
   "peerDependencies": {},
   "dependencies": {
-    "@oceanprotocol/keeper-contracts": "^0.13.1",
-    "@oceanprotocol/squid": "^1.1.0-beta.0",
+    "@oceanprotocol/lib": "^0.10.1",
     "commander": "^4.0.1",
     "download": "^7.1.0",
     "ethereumjs-wallet": "^0.6.3",
