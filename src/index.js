@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 const program = require('commander')
-// const { Ocean, Account } = require('@oceanprotocol/squid')
-// const Wallet = require('ethereumjs-wallet')
 const fs = require('fs')
 const { Ocean, ConfigHelper } = require('@oceanprotocol/lib')
+const web3 = require('web3')
+const Web3EthAccounts = require('web3-eth-accounts');
 const pg = require('pg')
 const got = require('got')
 const stream = require('stream')
@@ -20,6 +20,10 @@ var pgpool = new pg.Pool({
   max: 10, // max number of clients in the pool
   idleTimeoutMillis: 30000 // how long a client is allowed to remain idle before being closed
 })
+let Web3
+let web3Accounts
+let ocean
+let account
 
 program
   .option('-w, --workflow <path>', 'Workflow configuraton path')
@@ -44,93 +48,61 @@ program
 async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   let status = 30
   const inputsDir = `${path}/inputs`
-  //fs.mkdirSync(inputsDir)   - /data/inputs is already mounted, no need to create it
   const transformationsDir = `${path}/transformations`
   fs.mkdirSync(transformationsDir)
   const ddoDir = `${path}/ddos`
   fs.mkdirSync(ddoDir)
   const { stages } = JSON.parse(fs.readFileSync(workflowPath).toString())
+  Web3 = new web3()
+  web3Accounts = new Web3EthAccounts()
+  account = web3Accounts.privateKeyToAccount(process.env.PRIVATE_KEY).address
+  console.log("Starting with address:" + account)
   const oceanconfig = new ConfigHelper().getConfig('development')
   oceanconfig.metadataCacheUri = stages[0].output.metadataUri
-  console.log("Set metadatacache to "+oceanconfig.metadataCacheUri)
-  const ocean = await Ocean.getInstance(oceanconfig)
-
-  /* .service
-    .find(({type}) => type === 'Metadata')
-    .attributes
-    .workflow
-*/
+  console.log("Set metadatacache to " + oceanconfig.metadataCacheUri)
+  ocean = await Ocean.getInstance(oceanconfig)
+  console.log("========== Fetching input assets ============")
   const inputs = stages.reduce((acc, { input }) => [...acc, ...input], [])
   for (var i = 0; i < inputs.length; i++) {
-    var ainput = inputs[i]
-    var folder = inputsDir + '/' + ainput.id.replace('did:op:', '') + '/'
+    console.log("========\nProcessing input " + i + " (" + inputs[i].id + ")")
+    const folder = inputsDir + '/' + inputs[i].id.replace('did:op:', '') + '/'
     try {
       fs.mkdirSync(folder)
     } catch (e) {
       console.error(e)
     }
-    for (var x = 0; x < ainput.url.length; x++) {
-      console.log('===')
-      var aurl = ainput.url[x]
-      var localfile = folder + x
-      const downloadresult = await downloadurl(aurl, localfile)
-      if (downloadresult !== true) {
-        // download failed, bail out
-        status = 31
-      }
-    }
-    //fetch the ddo as well
-    try {
-      const ddo = await ocean.assets.resolve(ainput.id)
-      console.log(ddo)
-      fs.writeFileSync(ddoDir + '/' + ainput.id.replace('did:op:', ''), JSON.stringify(ddo));
-      console.log("DDO saved to "+ddoDir + '/' + ainput.id)
-    } catch (e) {
-      console.error('Failed to fetch ddo')
-      console.error(e)
-    }
+    const thisStatus = await dowloadAsset(inputs[i], folder, ddoDir)
+    if (!thisStatus) status = 31
   }
-
+  console.log("========== Done with inputs, moving to algo ============")
   if (status === 30) {
     // no need to download algo if input failed
     const algos = stages.reduce((acc, { algorithm }) => [...acc, algorithm], [])
-    folder = transformationsDir + '/'
-    localfile = folder + 'algorithm'
+    const algoPath = transformationsDir + '/'
     if (algos[0].rawcode != null) {
       if (algos[0].rawcode.length > 10) {
-        fs.writeFileSync(localfile, algos[0].rawcode)
+        fs.writeFileSync(algoPath + 'algorithm', algos[0].rawcode)
+        console.log("Wrote algoritm code to " + algoPath + 'algorithm')
       } else {
-        const downloadresult = await downloadurl(algos[0].url, localfile)
-        if (downloadresult !== true) {
-          // download failed, bail out
-          status = 32
-        }
+        const thisStatus = await dowloadAsset(algos[0], algoPath, ddoDir, true)
+        if (!thisStatus) status = 32
       }
     } else {
-      const downloadresult = await downloadurl(algos[0].url, localfile)
-      if (downloadresult !== true) {
-        // download failed, bail out
-        status = 32
-      }
+      const thisStatus = await dowloadAsset(algos[0], algoPath, ddoDir, true)
+      if (!thisStatus) status = 32
     }
     // make the file executable
     try {
-      fs.chmodSync(localfile, '777')
+      fs.chmodSync(algoPath + 'algorithm', '777')
     } catch (e) {
       console.error(e)
     }
-    if (algos[0].id) {
-      try {
-        const ddo = await ocean.assets.resolve(algos[0].id)
-        fs.writeFileSync(ddoDir + '/' + algos[0].id.replace('did:op:', ''), JSON.stringify(ddo));
-        console.log("DDO saved to "+ddoDir + '/' + algos[0].id)
-      } catch (e) {
-        console.error('Failed to fetch ddo')
-        console.error(e)
-      }
-    }
+  }
+  else {
+    console.log("Input fetch failed, so we don't need to download the algo")
   }
   // update sql status
+  console.log("============ Done , setting the status =============")
   try {
     var query = 'UPDATE jobs SET status=$1,statusText=$2 WHERE workflowId=$3'
     var sqlarr = []
@@ -155,19 +127,99 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   }
 }
 
+
+/**
+* Downloads url to target. Returns true is success, false otherwise
+*/
 async function downloadurl(url, target) {
-  /**
-   * Download URL to target
-   */
-  let retval = true
   console.log('Downloading ' + url + ' to ' + target)
   try {
     await pipeline(got.stream(url), fs.createWriteStream(target))
+    return true
   } catch (e) {
-    console.log('Download error')
+    console.log('Download error:')
     console.log(e)
-    retval = false
+    return false
   }
+}
 
-  return retval
+/**
+* Downloads an asset (dataset or algo), based on object describing access (see workflows) to folder.
+* Also, it tries to fetch the ddo and save it to ddoFolder.
+* If useAlgorithmNameInsteadOfIndex, then first file is named 'algorithm' instead of '0'
+* Returns true if all went all
+*/
+async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIndex = false) {
+  let ddo = null
+  //first, fetch the ddo if we can
+  try {
+    ddo = await ocean.assets.resolve(what.id)
+    fs.writeFileSync(ddoFolder + '/' + what.id.replace('did:op:', ''), JSON.stringify(ddo));
+    console.log("DDO saved to " + ddoFolder + '/' + what.id)
+  } catch (e) {
+    console.error('Failed to fetch ddo')
+    console.error(e)
+  }
+  //fetch the asset files
+  let filePath
+  if ('url' in what) {
+    if (Array.isArray(what.url)) {
+      for (var x = 0; x < what.url.length; x++) {
+        if (x == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algoritm'
+        else filePath = folder + x
+        const downloadresult = await downloadurl(what.url[x], filePath)
+        if (downloadresult !== true) {
+          // download failed, bail out
+          return(false)
+        }
+      }
+    }
+    else {
+      filePath = useAlgorithmNameInsteadOfIndex ? folder + 'algorithm' : folder + '0'
+      const downloadresult = await downloadurl(what.url, filePath)
+      if (downloadresult !== true) {
+        // download failed, bail out
+        return(false)
+      }
+    }
+  }
+  else if ('remote' in what) {
+    //remote provider, we need to fetch it
+    const txId = what.remote.txId
+    const serviceIndex = what.remote.serviceIndex
+    if (txId && ddo) {
+      const { attributes } = ddo.findServiceByType('metadata')
+      const service = ddo.findServiceById(serviceIndex)
+      const { files } = attributes.main
+      console.log("Setting provider to: " + service.serviceEndpoint)
+      ocean.provider.setBaseUrl(service.serviceEndpoint)
+      for (let i = 0; i < files.length; i++) {
+        await ocean.provider.getNonce(account)
+        const hash = Web3.utils.utf8ToHex(what.id + ocean.provider.nonce)
+        const sign = web3Accounts.sign(hash, process.env.PRIVATE_KEY)
+        const signature = sign.signature
+        let consumeUrl = ocean.provider.getDownloadEndpoint()
+        consumeUrl += `?fileIndex=${files[i].index}`
+        consumeUrl += `&documentId=${what.id}`
+        consumeUrl += `&serviceId=${serviceIndex}`
+        consumeUrl += `&serviceType=${service.type}`
+        consumeUrl += `&dataToken=${ddo.dtAddress}`
+        consumeUrl += `&transferTxId=${txId}`
+        consumeUrl += `&consumerAddress=${account}`
+        consumeUrl += `&signature=${signature}`
+        const downloadresult = await downloadurl(consumeUrl, folder + i)
+        if (downloadresult !== true) {
+          // download failed, bail out
+          return(false)
+        }
+      }
+    }
+    else {
+      console.log("Either txId is not set, or we could not fetch ddo")
+    }
+  }
+  else {
+    console.log("No url or remote key? Skipping this input ")
+  }
+  return (true)
 }
