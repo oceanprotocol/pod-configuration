@@ -53,10 +53,12 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   const ddoDir = `${path}/ddos`
   fs.mkdirSync(ddoDir)
   const { stages } = JSON.parse(fs.readFileSync(workflowPath).toString())
-  Web3 = new web3()
-  web3Accounts = new Web3EthAccounts()
-  account = web3Accounts.privateKeyToAccount(process.env.PRIVATE_KEY).address
-  console.log("Starting with address:" + account)
+  if(process.env.PRIVATE_KEY){
+    Web3 = new web3()
+    web3Accounts = new Web3EthAccounts()
+    account = web3Accounts.privateKeyToAccount(process.env.PRIVATE_KEY).address
+    console.log("Using address "+account+" as consumer if we connect to remote providers.")
+  }
   const oceanconfig = new ConfigHelper().getConfig('development')
   oceanconfig.metadataCacheUri = stages[0].output.metadataUri
   console.log("Set metadatacache to " + oceanconfig.metadataCacheUri)
@@ -185,6 +187,10 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
   }
   else if ('remote' in what) {
     //remote provider, we need to fetch it
+    if(!process.env.PRIVATE_KEY){
+      console.error("Cannot connect to remote providers without a private key")
+      return false
+    }
     const txId = what.remote.txId
     const serviceIndex = what.remote.serviceIndex
     if (txId && ddo) {
