@@ -209,7 +209,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         consumeUrl += `&documentId=${what.id}`
         consumeUrl += `&serviceId=${serviceIndex}`
         consumeUrl += `&serviceType=${service.type}`
-        consumeUrl += `&dataToken=${ddo.dtAddress}`
+        consumeUrl += `&dataToken=${ddo.dataToken}`
         consumeUrl += `&transferTxId=${txId}`
         consumeUrl += `&consumerAddress=${account}`
         consumeUrl += `&signature=${signature}`
