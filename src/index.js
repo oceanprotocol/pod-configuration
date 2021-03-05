@@ -211,7 +211,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         consumeUrl += `&serviceType=${service.type}`
         consumeUrl += `&dataToken=${ddo.dataToken}`
         consumeUrl += `&transferTxId=${txId}`
-        consumeUrl += `&consumerAddress=${account}`
+        consumeUrl += `&consumerAddress=${account.toLowerCase()}`
         consumeUrl += `&signature=${signature}`
         const downloadresult = await downloadurl(consumeUrl, folder + i)
         if (downloadresult !== true) {
