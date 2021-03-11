@@ -214,7 +214,9 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         consumeUrl += `&transferTxId=${txId}`
         consumeUrl += `&consumerAddress=${checksumAddress}`
         consumeUrl += `&signature=${signature}`
-        const downloadresult = await downloadurl(consumeUrl, folder + i)
+        if (i == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algoritm'
+        else filePath = folder + i
+        const downloadresult = await downloadurl(consumeUrl, filePath)
         if (downloadresult !== true) {
           // download failed, bail out
           return(false)
