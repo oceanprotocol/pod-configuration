@@ -203,15 +203,16 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         await ocean.provider.getNonce(account)
         const hash = Web3.utils.utf8ToHex(what.id + ocean.provider.nonce)
         const sign = web3Accounts.sign(hash, process.env.PRIVATE_KEY)
+        const checksumAddress = Web3.utils.toChecksumAddress(account)
         const signature = sign.signature
         let consumeUrl = ocean.provider.getDownloadEndpoint()
         consumeUrl += `?fileIndex=${files[i].index}`
         consumeUrl += `&documentId=${what.id}`
         consumeUrl += `&serviceId=${serviceIndex}`
         consumeUrl += `&serviceType=${service.type}`
-        consumeUrl += `&dataToken=${ddo.dtAddress}`
+        consumeUrl += `&dataToken=${ddo.dataToken}`
         consumeUrl += `&transferTxId=${txId}`
-        consumeUrl += `&consumerAddress=${account}`
+        consumeUrl += `&consumerAddress=${checksumAddress}`
         consumeUrl += `&signature=${signature}`
         const downloadresult = await downloadurl(consumeUrl, folder + i)
         if (downloadresult !== true) {
