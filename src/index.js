@@ -84,7 +84,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     if (algos[0].rawcode != null) {
       if (algos[0].rawcode.length > 10) {
         fs.writeFileSync(algoPath + 'algorithm', algos[0].rawcode)
-        console.log("Wrote algoritm code to " + algoPath + 'algorithm')
+        console.log("Wrote algorithm code to " + algoPath + 'algorithm')
       } else {
         const thisStatus = await dowloadAsset(algos[0], algoPath, ddoDir, true)
         if (!thisStatus) status = 32
@@ -167,7 +167,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
   if ('url' in what) {
     if (Array.isArray(what.url)) {
       for (var x = 0; x < what.url.length; x++) {
-        if (x == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algoritm'
+        if (x == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + x
         const downloadresult = await downloadurl(what.url[x], filePath)
         if (downloadresult !== true) {
@@ -198,14 +198,14 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
       const service = ddo.findServiceById(serviceIndex)
       const { files } = attributes.main
       console.log("Setting provider to: " + service.serviceEndpoint)
-      ocean.provider.setBaseUrl(service.serviceEndpoint)
+      await ocean.provider.setBaseUrl(service.serviceEndpoint)
       for (let i = 0; i < files.length; i++) {
         await ocean.provider.getNonce(account)
         const hash = Web3.utils.utf8ToHex(what.id + ocean.provider.nonce)
         const sign = web3Accounts.sign(hash, process.env.PRIVATE_KEY)
         const checksumAddress = Web3.utils.toChecksumAddress(account)
         const signature = sign.signature
-        let consumeUrl = ocean.provider.getDownloadEndpoint()
+        let consumeUrl = ocean.provider.getDownloadEndpoint().urlPath
         consumeUrl += `?fileIndex=${files[i].index}`
         consumeUrl += `&documentId=${what.id}`
         consumeUrl += `&serviceId=${serviceIndex}`
@@ -214,7 +214,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         consumeUrl += `&transferTxId=${txId}`
         consumeUrl += `&consumerAddress=${checksumAddress}`
         consumeUrl += `&signature=${signature}`
-        if (i == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algoritm'
+        if (i == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + i
         const downloadresult = await downloadurl(consumeUrl, filePath)
         if (downloadresult !== true) {
