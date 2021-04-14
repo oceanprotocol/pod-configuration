@@ -18,13 +18,14 @@
   },
   "peerDependencies": {},
   "dependencies": {
-    "@oceanprotocol/lib": "^0.11.4",
+    "@oceanprotocol/lib": "^0.14.1",
     "commander": "^4.0.1",
     "download": "^7.1.0",
     "ethereumjs-wallet": "^0.6.3",
     "got": "^10.2.1",
     "pg": "^7.17.1",
     "pg-pool": "^2.0.9",
+    "release-it": "^14.6.1",
     "stream": "0.0.2",
     "util": "^0.12.1"
   },
