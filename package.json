@@ -19,6 +19,7 @@
   },
   "peerDependencies": {},
   "dependencies": {
+    "@oceanprotocol/contracts": "^0.5.18",
     "@oceanprotocol/lib": "^0.14.7",
     "commander": "^4.0.1",
     "download": "^7.1.0",
