@@ -60,7 +60,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     fs.mkdirSync(logsDir)
     fs.chmodSync(logsDir, 777)
     // create the algo log as well
-    fs.writeFileSync("${path}/logs/algorithm.log", '');
+    fs.writeFileSync(`${path}/logs/algorithm.log`, '');
   }
   catch (e) { console.error(e) }
   const ddoDir = `${path}/ddos`
