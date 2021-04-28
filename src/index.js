@@ -50,6 +50,9 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   const inputsDir = `${path}/inputs`
   const transformationsDir = `${path}/transformations`
   fs.mkdirSync(transformationsDir)
+  const logsDir = `${path}/logs`
+  fs.mkdirSync(logsDir)
+  fs.chmodSync(logsDir,777)
   const ddoDir = `${path}/ddos`
   fs.mkdirSync(ddoDir)
   const { stages } = JSON.parse(fs.readFileSync(workflowPath).toString())
