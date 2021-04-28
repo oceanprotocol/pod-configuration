@@ -48,6 +48,11 @@ program
 async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   let status = 30
   const inputsDir = `${path}/inputs`
+  try {
+    fs.mkdirSync(inputsDir)
+    fs.chmodSync(inputsDir, 777)
+  }
+  catch (e) { console.error(e) }
   const transformationsDir = `${path}/transformations`
   try { 
     fs.mkdirSync(transformationsDir)
