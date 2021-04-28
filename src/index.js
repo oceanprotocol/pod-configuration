@@ -49,21 +49,35 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   let status = 30
   const inputsDir = `${path}/inputs`
   const transformationsDir = `${path}/transformations`
-  fs.mkdirSync(transformationsDir)
+  try { 
+    fs.mkdirSync(transformationsDir)
+  }
+  catch (e) { 
+    console.error(e) 
+  }
   const logsDir = `${path}/logs`
-  fs.mkdirSync(logsDir)
-  fs.chmodSync(logsDir,777)
+  try {
+    fs.mkdirSync(logsDir)
+    fs.chmodSync(logsDir, 777)
+    // create the algo log as well
+    fs.writeFileSync("${path}/logs/algorithm.log", '');
+  }
+  catch (e) { console.error(e) }
   const ddoDir = `${path}/ddos`
-  fs.mkdirSync(ddoDir)
+  try { fs.mkdirSync(ddoDir) }
+  catch (e) { console.error(e) }
   const outputsDir = `${path}/outputs`
-  fs.mkdirSync(outputsDir)
-  fs.chmodSync(outputsDir,777)
+  try {
+    fs.mkdirSync(outputsDir)
+    fs.chmodSync(outputsDir, 777)
+  }
+  catch (e) { console.error(e) }
   const { stages } = JSON.parse(fs.readFileSync(workflowPath).toString())
-  if(process.env.PRIVATE_KEY){
+  if (process.env.PRIVATE_KEY) {
     Web3 = new web3()
     web3Accounts = new Web3EthAccounts()
     account = web3Accounts.privateKeyToAccount(process.env.PRIVATE_KEY).address
-    console.log("Using address "+account+" as consumer if we connect to remote providers.")
+    console.log("Using address " + account + " as consumer if we connect to remote providers.")
   }
   const oceanconfig = new ConfigHelper().getConfig('development')
   oceanconfig.metadataCacheUri = stages[0].output.metadataUri
@@ -178,7 +192,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         const downloadresult = await downloadurl(what.url[x], filePath)
         if (downloadresult !== true) {
           // download failed, bail out
-          return(false)
+          return (false)
         }
       }
     }
@@ -187,13 +201,13 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
       const downloadresult = await downloadurl(what.url, filePath)
       if (downloadresult !== true) {
         // download failed, bail out
-        return(false)
+        return (false)
       }
     }
   }
   else if ('remote' in what) {
     //remote provider, we need to fetch it
-    if(!process.env.PRIVATE_KEY){
+    if (!process.env.PRIVATE_KEY) {
       console.error("Cannot connect to remote providers without a private key")
       return false
     }
@@ -225,7 +239,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         const downloadresult = await downloadurl(consumeUrl, filePath)
         if (downloadresult !== true) {
           // download failed, bail out
-          return(false)
+          return (false)
         }
       }
     }
