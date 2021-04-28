@@ -55,6 +55,9 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   fs.chmodSync(logsDir,777)
   const ddoDir = `${path}/ddos`
   fs.mkdirSync(ddoDir)
+  const outputsDir = `${path}/outputs`
+  fs.mkdirSync(outputsDir)
+  fs.chmodSync(outputsDir,777)
   const { stages } = JSON.parse(fs.readFileSync(workflowPath).toString())
   if(process.env.PRIVATE_KEY){
     Web3 = new web3()
