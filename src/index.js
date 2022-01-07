@@ -73,6 +73,9 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   const ddoDir = `${path}/ddos`
   try { fs.mkdirSync(ddoDir) }
   catch (e) { console.error(e) }
+  const algoCustomDataDir = `${path}/algocustomdata`
+  try { fs.mkdirSync(algoCustomDataDir) }
+  catch (e) { console.error(e) }
   const outputsDir = `${path}/outputs`
   try {
     fs.mkdirSync(outputsDir)
@@ -241,6 +244,11 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         consumeUrl += `&transferTxId=${txId}`
         consumeUrl += `&consumerAddress=${checksumAddress}`
         consumeUrl += `&signature=${signature}`
+        if (what.remote.userdata)
+          consumeUrl += '&userdata=' + encodeURI(JSON.stringify(what.remote.userdata))
+        if (what.remote.algouserdata)
+          consumeUrl += '&userdata=' + encodeURI(JSON.stringify(what.remote.algouserdata))
+          
         if (i == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + i
         const downloadresult = await downloadurl(consumeUrl, filePath)
@@ -256,6 +264,11 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
   }
   else {
     console.log("No url or remote key? Skipping this input ")
+  }
+  // write algo custom data if exists
+  if('algocustomdata' in what){
+    fs.writeFileSync(algoCustomDataDir + '/' + what.id.replace('did:op:', ''), JSON.stringify(what.algocustomdata));
+    console.log("AlgoCustomData saved to " + algoCustomDataDir + '/' + what.id)
   }
   return (true)
 }
