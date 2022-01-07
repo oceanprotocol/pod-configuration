@@ -108,6 +108,11 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     // no need to download algo if input failed
     const algos = stages.reduce((acc, { algorithm }) => [...acc, algorithm], [])
     const algoPath = transformationsDir + '/'
+    // write algo custom data if exists
+    if('algocustomdata' in algos[0]){
+      fs.writeFileSync(inputsDir + '/algoCustomData.json', JSON.stringify(algos[0].algocustomdata));
+      console.log("AlgoCustomData saved to " + inputsDir + '/algoCustomData.json')
+    }
     if (algos[0].rawcode != null) {
       if (algos[0].rawcode.length > 10) {
         fs.writeFileSync(algoPath + 'algorithm', algos[0].rawcode)
@@ -163,7 +168,12 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
 async function downloadurl(url, target) {
   console.log('Downloading ' + url + ' to ' + target)
   try {
-    await pipeline(got.stream(url), fs.createWriteStream(target))
+    await pipeline(got.stream(url, {
+      timeout: {
+        request: 10000
+      }
+    }), fs.createWriteStream(target))
+    console.log("Downloaded OK")
     return true
   } catch (e) {
     console.log('Download error:')
@@ -224,15 +234,25 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
       const { attributes } = ddo.findServiceByType('metadata')
       const service = ddo.findServiceById(serviceIndex)
       const { files } = attributes.main
+      
       console.log("Setting provider to: " + service.serviceEndpoint)
       await ocean.provider.setBaseUrl(service.serviceEndpoint)
+      let urlPath
+      try{
+        urlPath = ocean.provider.getDownloadEndpoint().urlPath
+      }
+      catch(e){
+        console.error("Failed to get provider download endpoint")
+        console.error(e)
+        return false
+      }
       for (let i = 0; i < files.length; i++) {
         await ocean.provider.getNonce(account)
         const hash = Web3.utils.utf8ToHex(what.id + ocean.provider.nonce)
         const sign = web3Accounts.sign(hash, process.env.PRIVATE_KEY)
         const checksumAddress = Web3.utils.toChecksumAddress(account)
         const signature = sign.signature
-        let consumeUrl = ocean.provider.getDownloadEndpoint().urlPath
+        let consumeUrl = urlPath
         consumeUrl += `?fileIndex=${files[i].index}`
         consumeUrl += `&documentId=${what.id}`
         consumeUrl += `&serviceId=${serviceIndex}`
@@ -241,6 +261,11 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
         consumeUrl += `&transferTxId=${txId}`
         consumeUrl += `&consumerAddress=${checksumAddress}`
         consumeUrl += `&signature=${signature}`
+        if (what.remote.userdata)
+          consumeUrl += '&userdata=' + encodeURI(JSON.stringify(what.remote.userdata))
+        if (what.remote.algouserdata)
+          consumeUrl += '&userdata=' + encodeURI(JSON.stringify(what.remote.algouserdata))
+          
         if (i == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + i
         const downloadresult = await downloadurl(consumeUrl, filePath)
