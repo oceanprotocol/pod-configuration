@@ -173,6 +173,7 @@ async function downloadurl(url, target) {
         request: 10000
       }
     }), fs.createWriteStream(target))
+    console.log("Downloaded OK")
     return true
   } catch (e) {
     console.log('Download error:')
