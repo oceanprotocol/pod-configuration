@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 const program = require('commander')
 const fs = require('fs')
-const { Ocean, ConfigHelper } = require('@oceanprotocol/lib')
 const web3 = require('web3')
 const Web3EthAccounts = require('web3-eth-accounts');
 const pg = require('pg')
 const got = require('got')
 const stream = require('stream')
 const { promisify } = require('util')
+const fetch = require('cross-fetch')
 
 const pipeline = promisify(stream.pipeline)
 
@@ -22,7 +22,6 @@ var pgpool = new pg.Pool({
 })
 let Web3
 let web3Accounts
-let ocean
 let account
 
 program
@@ -54,11 +53,11 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   }
   catch (e) { console.error(e) }
   const transformationsDir = `${path}/transformations`
-  try { 
+  try {
     fs.mkdirSync(transformationsDir)
   }
-  catch (e) { 
-    console.error(e) 
+  catch (e) {
+    console.error(e)
   }
   const logsDir = `${path}/logs`
   try {
@@ -86,10 +85,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     account = web3Accounts.privateKeyToAccount(process.env.PRIVATE_KEY).address
     console.log("Using address " + account + " as consumer if we connect to remote providers.")
   }
-  const oceanconfig = new ConfigHelper().getConfig('development')
-  oceanconfig.metadataCacheUri = stages[0].output.metadataUri
-  console.log("Set metadatacache to " + oceanconfig.metadataCacheUri)
-  ocean = await Ocean.getInstance(oceanconfig)
+  const aquariusURL = stages[0].output.metadataUri
   console.log("========== Fetching input assets ============")
   const inputs = stages.reduce((acc, { input }) => [...acc, ...input], [])
   for (var i = 0; i < inputs.length; i++) {
@@ -100,7 +96,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     } catch (e) {
       console.error(e)
     }
-    const thisStatus = await dowloadAsset(inputs[i], folder, ddoDir)
+    const thisStatus = await dowloadAsset(aquariusURL, inputs[i], folder, ddoDir)
     if (!thisStatus) status = 31
   }
   console.log("========== Done with inputs, moving to algo ============")
@@ -109,7 +105,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     const algos = stages.reduce((acc, { algorithm }) => [...acc, algorithm], [])
     const algoPath = transformationsDir + '/'
     // write algo custom data if exists
-    if('algocustomdata' in algos[0]){
+    if ('algocustomdata' in algos[0]) {
       fs.writeFileSync(inputsDir + '/algoCustomData.json', JSON.stringify(algos[0].algocustomdata));
       console.log("AlgoCustomData saved to " + inputsDir + '/algoCustomData.json')
     }
@@ -118,11 +114,11 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
         fs.writeFileSync(algoPath + 'algorithm', algos[0].rawcode)
         console.log("Wrote algorithm code to " + algoPath + 'algorithm')
       } else {
-        const thisStatus = await dowloadAsset(algos[0], algoPath, ddoDir, true)
+        const thisStatus = await dowloadAsset(aquariusURL, algos[0], algoPath, ddoDir, true)
         if (!thisStatus) status = 32
       }
     } else {
-      const thisStatus = await dowloadAsset(algos[0], algoPath, ddoDir, true)
+      const thisStatus = await dowloadAsset(aquariusURL, algos[0], algoPath, ddoDir, true)
       if (!thisStatus) status = 32
     }
     // make the file executable
@@ -161,40 +157,19 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   }
 }
 
-
-/**
-* Downloads url to target. Returns true is success, false otherwise
-*/
-async function downloadurl(url, target) {
-  console.log('Downloading ' + url + ' to ' + target)
-  try {
-    await pipeline(got.stream(url, {
-      timeout: {
-        request: 10000
-      }
-    }), fs.createWriteStream(target))
-    console.log("Downloaded OK")
-    return true
-  } catch (e) {
-    console.log('Download error:')
-    console.log(e)
-    return false
-  }
-}
-
 /**
 * Downloads an asset (dataset or algo), based on object describing access (see workflows) to folder.
 * Also, it tries to fetch the ddo and save it to ddoFolder.
 * If useAlgorithmNameInsteadOfIndex, then first file is named 'algorithm' instead of '0'
 * Returns true if all went all
 */
-async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIndex = false) {
+async function dowloadAsset(aquariusURL, what, folder, ddoFolder, useAlgorithmNameInsteadOfIndex = false) {
   let ddo = null
   console.log("Downloading:")
   console.log(what)
   //first, fetch the ddo if we can
   try {
-    ddo = await ocean.assets.resolve(what.id)
+    ddo = await resolveAsset(aquariusURL, what.id)
     fs.writeFileSync(ddoFolder + '/' + what.id.replace('did:op:', ''), JSON.stringify(ddo));
     console.log("DDO saved to " + ddoFolder + '/' + what.id)
   } catch (e) {
@@ -204,6 +179,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
   //fetch the asset files
   let filePath
   if ('url' in what) {
+    // provider already has urls, this is going to be removed in the future
     if (Array.isArray(what.url)) {
       for (var x = 0; x < what.url.length; x++) {
         if (x == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
@@ -231,46 +207,27 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
       return false
     }
     const txId = what.remote.txId
-    const serviceIndex = what.remote.serviceIndex
+    const serviceId = what.remote.serviceId
     if (txId && ddo) {
-      const { attributes } = ddo.findServiceByType('metadata')
-      const service = ddo.findServiceById(serviceIndex)
-      const { files } = attributes.main
-      
-      console.log("Setting provider to: " + service.serviceEndpoint)
-      await ocean.provider.setBaseUrl(service.serviceEndpoint)
-      let urlPath
-      try{
-        urlPath = ocean.provider.getDownloadEndpoint().urlPath
-      }
-      catch(e){
-        console.error("Failed to get provider download endpoint")
+      const service = ddo.services.find((s) => s.id === serviceId)
+      if (!service) {
+        console.error("Cannot find that serviceId in the DDO")
         console.error(e)
         return false
       }
+      const providerURL = service['serviceEndpoint']
+      const files = await getFilesInfo(providerUrl, what.id, serviceId)
+      console.log(files)
       for (let i = 0; i < files.length; i++) {
-        await ocean.provider.getNonce(account)
-        const hash = Web3.utils.utf8ToHex(what.id + ocean.provider.nonce)
-        const sign = web3Accounts.sign(hash, process.env.PRIVATE_KEY)
-        const checksumAddress = Web3.utils.toChecksumAddress(account)
-        const signature = sign.signature
-        let consumeUrl = urlPath
-        consumeUrl += `?fileIndex=${files[i].index}`
-        consumeUrl += `&documentId=${what.id}`
-        consumeUrl += `&serviceId=${serviceIndex}`
-        consumeUrl += `&serviceType=${service.type}`
-        consumeUrl += `&dataToken=${ddo.dataToken}`
-        consumeUrl += `&transferTxId=${txId}`
-        consumeUrl += `&consumerAddress=${checksumAddress}`
-        consumeUrl += `&signature=${signature}`
+        let userdata = null
         if (what.remote.userdata)
-          consumeUrl += '&userdata=' + encodeURI(JSON.stringify(what.remote.userdata))
+          userdata = what.remote.userdata
         if (what.remote.algouserdata)
-          consumeUrl += '&userdata=' + encodeURI(JSON.stringify(what.remote.algouserdata))
-          
+          userdata = what.remote.algouserdata
+        const consumeUrl = await getProviderDownloadUrl(providerURL, what.id, account, serviceId, i, txId, userdata)
         if (i == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + i
-        console.log("Trying to download "+consumeUrl + "to " + filePath)
+        console.log("Trying to download " + consumeUrl + "to " + filePath)
         const downloadresult = await downloadurl(consumeUrl, filePath)
         if (downloadresult !== true) {
           // download failed, bail out
@@ -280,10 +237,116 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
     }
     else {
       console.log("Either txId is not set, or we could not fetch ddo")
+      return (false)
     }
   }
   else {
     console.log("No url or remote key? Skipping this input ")
   }
   return (true)
+}
+
+// helpers functions below
+
+/**
+* Downloads url to target. Returns true is success, false otherwise
+*/
+async function downloadurl(url, target) {
+  console.log('Downloading ' + url + ' to ' + target)
+  try {
+    await pipeline(got.stream(url, {
+      timeout: {
+        request: 10000
+      }
+    }), fs.createWriteStream(target))
+    console.log("Downloaded OK")
+    return true
+  } catch (e) {
+    console.log('Download error:')
+    console.log(e)
+    return false
+  }
+}
+
+
+async function resolveAsset(aquariusURL, did) {
+  const path = aquariusURL + '/api/aquarius/assets/ddo/' + did
+  try {
+    const response = await fetch(path, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const raw = await response.json()
+      return raw
+    } else {
+      throw new Error('HTTP request failed with status ' + response.status)
+    }
+  } catch (e) {
+    LoggerInstance.error(e)
+    throw new Error('HTTP request failed')
+
+  }
+}
+
+
+//provider helpers
+async function getEndpointURL(providerURL, serviceName) {
+  const response = fetch(providerURL, {
+    method: 'GET',
+    headers: {
+      'Content-type': 'application/json'
+    }
+  })
+  const providerData = await response.json()
+  for (const i in providerData['serviceEndpoints']) {
+    if (i === serviceName) {
+      return (providerData['serviceEndpoints'][i])
+    }
+  }
+  return null
+}
+
+async function getFilesInfo(providerUrl, did, serviceId) {
+  const args = { did: did, serviceId: serviceId }
+  const endpoint = await getEndpointURL(providerUrl, 'fileinfo')
+  const url = providerURL + "/" + endpoint[1]
+  console.log(url)
+  try {
+    const response = await fetch(url, {
+      method: endpoint[0],
+      body: JSON.stringify(args),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    return (await response.json())
+  } catch (e) {
+    return null
+  }
+}
+
+async function getProviderDownloadUrl(providerURL, did, accountId, serviceId, fileIndex, transferTxId, userdata) {
+  const endpoint = await getEndpointURL(providerURL, 'download')
+  const nonce = Date.now()
+  const hash = Web3.utils.utf8ToHex(did + nonce)
+  const sign = web3Accounts.sign(hash, process.env.PRIVATE_KEY)
+  const signature = sign.signature
+  const checksumAddress = Web3.utils.toChecksumAddress(accountId)
+
+  let consumeUrl = endpoint[1]
+  consumeUrl += `?fileIndex=${fileIndex}`
+  consumeUrl += `&documentId=${did}`
+  consumeUrl += `&transferTxId=${transferTxId}`
+  consumeUrl += `&serviceId=${serviceId}`
+  consumeUrl += `&consumerAddress=${checksumAddress}`
+  consumeUrl += `&nonce=${nonce}`
+  consumeUrl += `&signature=${signature}`
+  if (userdata)
+    consumeUrl += '&userdata=' + encodeURI(JSON.stringify(userdata))
+  console.log("consumeUrl: " + consumeUrl)
+  return consumeUrl
 }
