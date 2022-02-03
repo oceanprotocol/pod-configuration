@@ -283,10 +283,11 @@ async function resolveAsset(aquariusURL, did) {
       const raw = await response.json()
       return raw
     } else {
+      console.error('HTTP request failed with status ' + response.status)
       throw new Error('HTTP request failed with status ' + response.status)
     }
   } catch (e) {
-    LoggerInstance.error(e)
+    console.error(e)
     throw new Error('HTTP request failed')
 
   }
