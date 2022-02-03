@@ -314,7 +314,7 @@ async function getEndpointURL(providerURL, serviceName) {
 async function getFilesInfo(providerUrl, did, serviceId) {
   const args = { did: did, serviceId: serviceId }
   const endpoint = await getEndpointURL(providerUrl, 'fileinfo')
-  const url = providerURL + "/" + endpoint[1]
+  const url = providerUrl + "/" + endpoint[1]
   console.log(url)
   try {
     const response = await fetch(url, {
