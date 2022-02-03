@@ -216,7 +216,7 @@ async function dowloadAsset(aquariusURL, what, folder, ddoFolder, useAlgorithmNa
         return false
       }
       const providerURL = service['serviceEndpoint']
-      const files = await getFilesInfo(providerUrl, what.id, serviceId)
+      const files = await getFilesInfo(providerURL, what.id, serviceId)
       console.log(files)
       for (let i = 0; i < files.length; i++) {
         let userdata = null
