@@ -190,6 +190,8 @@ async function downloadurl(url, target) {
 */
 async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIndex = false) {
   let ddo = null
+  console.log("Downloading:")
+  console.log(what)
   //first, fetch the ddo if we can
   try {
     ddo = await ocean.assets.resolve(what.id)
@@ -268,6 +270,7 @@ async function dowloadAsset(what, folder, ddoFolder, useAlgorithmNameInsteadOfIn
           
         if (i == 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + i
+        console.log("Trying to download "+consumeUrl + "to " + filePath)
         const downloadresult = await downloadurl(consumeUrl, filePath)
         if (downloadresult !== true) {
           // download failed, bail out
