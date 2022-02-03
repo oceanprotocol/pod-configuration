@@ -296,7 +296,7 @@ async function resolveAsset(aquariusURL, did) {
 
 //provider helpers
 async function getEndpointURL(providerURL, serviceName) {
-  const response = fetch(providerURL, {
+  const response = await fetch(providerURL, {
     method: 'GET',
     headers: {
       'Content-type': 'application/json'
