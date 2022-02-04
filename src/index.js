@@ -212,7 +212,6 @@ async function dowloadAsset(aquariusURL, what, folder, ddoFolder, useAlgorithmNa
       const service = ddo.services.find((s) => s.id === serviceId)
       if (!service) {
         console.error("Cannot find that serviceId in the DDO")
-        console.error(e)
         return false
       }
       const providerURL = service['serviceEndpoint']
@@ -338,7 +337,7 @@ async function getProviderDownloadUrl(providerURL, did, accountId, serviceId, fi
   const signature = sign.signature
   const checksumAddress = Web3.utils.toChecksumAddress(accountId)
 
-  let consumeUrl = endpoint[1]
+  let consumeUrl = providerURL + endpoint[1]
   consumeUrl += `?fileIndex=${fileIndex}`
   consumeUrl += `&documentId=${did}`
   consumeUrl += `&transferTxId=${transferTxId}`
