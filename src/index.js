@@ -347,6 +347,5 @@ async function getProviderDownloadUrl(providerURL, did, accountId, serviceId, fi
   consumeUrl += `&signature=${signature}`
   if (userdata)
     consumeUrl += '&userdata=' + encodeURI(JSON.stringify(userdata))
-  console.log("consumeUrl: " + consumeUrl)
   return consumeUrl
 }
