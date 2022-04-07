@@ -165,8 +165,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
 */
 async function dowloadAsset(aquariusURL, what, folder, ddoFolder, useAlgorithmNameInsteadOfIndex = false) {
   let ddo = null
-  console.log("Downloading:")
-  console.log(what)
+  console.log("Downloading...")
   //first, fetch the ddo if we can
   try {
     ddo = await resolveAsset(aquariusURL, what.id)
@@ -251,7 +250,7 @@ async function dowloadAsset(aquariusURL, what, folder, ddoFolder, useAlgorithmNa
 * Downloads url to target. Returns true is success, false otherwise
 */
 async function downloadurl(url, target) {
-  console.log('Downloading ' + url + ' to ' + target)
+  console.log('Downloading to ' + target)
   try {
     await pipeline(got.stream(url, {
       timeout: {
