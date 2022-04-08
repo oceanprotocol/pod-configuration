@@ -335,7 +335,8 @@ async function getProviderDownloadUrl(providerURL, did, accountId, serviceId, fi
     t: 'bytes',
     v: web3.utils.utf8ToHex(did + nonce)
   })
-  const signature = await web3.eth.sign(consumerMessage, process.env.PRIVATE_KEY)
+  const sign = web3Accounts.sign(consumerMessage, process.env.PRIVATE_KEY)
+  const signature = sign.signature
   const checksumAddress = Web3.utils.toChecksumAddress(accountId)
 
   let consumeUrl = providerURL + endpoint[1]
