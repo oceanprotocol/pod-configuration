@@ -331,8 +331,11 @@ async function getFilesInfo(providerUrl, did, serviceId) {
 async function getProviderDownloadUrl(providerURL, did, accountId, serviceId, fileIndex, transferTxId, userdata) {
   const endpoint = await getEndpointURL(providerURL, 'download')
   const nonce = Date.now()
-  const hash = Web3.utils.utf8ToHex(did + nonce)
-  const sign = web3Accounts.sign(hash, process.env.PRIVATE_KEY)
+  const consumerMessage = web3.utils.soliditySha3({
+    t: 'bytes',
+    v: web3.utils.utf8ToHex(did + nonce)
+  })
+  const sign = web3Accounts.sign(consumerMessage, process.env.PRIVATE_KEY)
   const signature = sign.signature
   const checksumAddress = Web3.utils.toChecksumAddress(accountId)
 
