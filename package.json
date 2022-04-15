@@ -4,7 +4,7 @@
   "description": "pod-configuration",
   "scripts": {
     "start": "node src/index.js --workflow \"$(cat samples/workflow.json)\" --node \"http://localhost:8545\" --credentials \"$(cat ~/projects/ocean/barge/networks/spree/keys/account1.json)\" --password secret --inputs /tmp/squid-pod/inputs --transformations /tmp/squid-pod/transformations --verbose",
-    "lint": "eslint --ignore-path .gitignore --ext .ts,.tsx .",
+    "lint": "eslint --ignore-path .gitignore --ext .js .",
     "release": "release-it --no-npm.publish --github.release --no-github.draft"
   },
   "repository": {
