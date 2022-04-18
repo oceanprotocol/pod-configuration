@@ -20,7 +20,7 @@
   "peerDependencies": {},
   "dependencies": {
     "commander": "^4.0.1",
-    "download": "^7.1.0",
+    "download": "^8.0.0",
     "ethereumjs-wallet": "^0.6.3",
     "got": "^10.2.1",
     "pg": "^7.17.1",
