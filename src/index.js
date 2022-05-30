@@ -227,9 +227,9 @@ async function dowloadAsset(
       console.error('Cannot connect to remote providers without a private key')
       return false
     }
-    const { txId } = what.remote
+    const { txid } = what.remote
     const { serviceId } = what.remote
-    if (txId && ddo) {
+    if (txid && ddo) {
       const service = ddo.services.find(s => s.id === serviceId)
       if (!service) {
         console.error('Cannot find that serviceId in the DDO')
@@ -248,7 +248,7 @@ async function dowloadAsset(
           account,
           serviceId,
           i,
-          txId,
+          txid,
           params
         )
         if (i === 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
