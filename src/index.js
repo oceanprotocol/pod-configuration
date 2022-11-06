@@ -107,10 +107,11 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     if (!thisStatus) status = 31
   }
   console.log('========== Done with inputs, moving to algo ============')
+  const algos = stages.reduce((acc, { algorithm }) => [...acc, algorithm], [])
+  // no need to download algo if input failed
+  const algoPath = transformationsDir + '/'
+
   if (status === 30) {
-    // no need to download algo if input failed
-    const algos = stages.reduce((acc, { algorithm }) => [...acc, algorithm], [])
-    const algoPath = transformationsDir + '/'
     // write algo custom data if exists
     if ('algocustomdata' in algos[0]) {
       fs.writeFileSync(
@@ -146,6 +147,47 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   } else {
     console.log("Input fetch failed, so we don't need to download the algo")
   }
+
+  console.log('========== Done with algo, moving to claims ============')
+
+  if (algos.length === 2) {
+    // write algo custom data if exists
+    if ('algocustomdata' in algos[1]) {
+      fs.writeFileSync(
+        inputsDir + '/claimCustomData.json',
+        JSON.stringify(algos[1].algocustomdata)
+      )
+      console.log('ClaimCustomData saved to ' + inputsDir + '/claimCustomData.json')
+    }
+
+    if (algos[1].rawcode != null) {
+      if (algos[1].rawcode.length > 10) {
+        fs.writeFileSync(algoPath + 'claim', algos[1].rawcode)
+        console.log('Wrote claim code to ' + algoPath + 'claim')
+      } else {
+        const thisStatus = await dowloadAsset(
+          aquariusURL,
+          algos[1],
+          algoPath,
+          ddoDir,
+          true
+        )
+        if (!thisStatus) status = 32
+      }
+    } else {
+      const thisStatus = await dowloadAsset(aquariusURL, algos[1], algoPath, ddoDir, true)
+      if (!thisStatus) status = 32
+    }
+    // make the file executable
+    try {
+      fs.chmodSync(algoPath + 'claim', '777')
+    } catch (e) {
+      console.error(e)
+    }
+  } else {
+    console.log("Input fetch failed, so we don't need to download the claim")
+  }
+
   // update sql status
   console.log('============ Done , setting the status =============')
   try {
