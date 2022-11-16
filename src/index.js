@@ -148,39 +148,49 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     console.log("Input fetch failed, so we don't need to download the algo")
   }
 
-  console.log('========== Done with algo, moving to claims ============')
+  console.log('========== Umesh ============')
 
-  if (algos.length === 2) {
+  console.log('========== Done with algo, moving to claims ============')
+  const claims = stages.reduce((acc, { claim }) => [...acc, claim], [])
+  const claimPath = transformationsDir + '/'
+
+  if (claims.length > 0) {
     // write algo custom data if exists
-    if ('algocustomdata' in algos[1]) {
+    if ('algocustomdata' in claims[0]) {
       fs.writeFileSync(
         inputsDir + '/claimCustomData.json',
-        JSON.stringify(algos[1].algocustomdata)
+        JSON.stringify(claims[0].algocustomdata)
       )
       console.log('ClaimCustomData saved to ' + inputsDir + '/claimCustomData.json')
     }
 
-    if (algos[1].rawcode != null) {
-      if (algos[1].rawcode.length > 10) {
-        fs.writeFileSync(algoPath + 'claim', algos[1].rawcode)
+    if (claims[0].rawcode != null) {
+      if (claims[0].rawcode.length > 10) {
+        fs.writeFileSync(claimPath + 'claim', claims[0].rawcode)
         console.log('Wrote claim code to ' + algoPath + 'claim')
       } else {
         const thisStatus = await dowloadAsset(
           aquariusURL,
-          algos[1],
-          algoPath,
+          claims[0],
+          claimPath,
           ddoDir,
           true
         )
         if (!thisStatus) status = 32
       }
     } else {
-      const thisStatus = await dowloadAsset(aquariusURL, algos[1], algoPath, ddoDir, true)
+      const thisStatus = await dowloadAsset(
+        aquariusURL,
+        claims[0],
+        claimPath,
+        ddoDir,
+        true
+      )
       if (!thisStatus) status = 32
     }
     // make the file executable
     try {
-      fs.chmodSync(algoPath + 'claim', '777')
+      fs.chmodSync(claimPath + 'claim', '777')
     } catch (e) {
       console.error(e)
     }
