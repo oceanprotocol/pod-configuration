@@ -174,6 +174,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
           claims[0],
           claimPath,
           ddoDir,
+          true,
           true
         )
         if (!thisStatus) status = 32
@@ -184,6 +185,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
         claims[0],
         claimPath,
         ddoDir,
+        true,
         true
       )
       if (!thisStatus) status = 32
@@ -235,7 +237,8 @@ async function dowloadAsset(
   what,
   folder,
   ddoFolder,
-  useAlgorithmNameInsteadOfIndex = false
+  useAlgorithmNameInsteadOfIndex = false,
+  isClaim = false
 ) {
   let ddo = null
   console.log('Downloading...')
@@ -257,7 +260,7 @@ async function dowloadAsset(
     // provider already has urls, this is going to be removed in the future
     if (Array.isArray(what.url)) {
       for (let x = 0; x < what.url.length; x++) {
-        if (x === 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
+        if (x === 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + (isClaim ? 'claim' : 'algorithm')
         else filePath = folder + x
         const downloadresult = await downloadurl(what.url[x], filePath)
         if (downloadresult !== true) {
@@ -266,7 +269,7 @@ async function dowloadAsset(
         }
       }
     } else {
-      filePath = useAlgorithmNameInsteadOfIndex ? folder + 'algorithm' : folder + '0'
+      filePath = useAlgorithmNameInsteadOfIndex ? folder + (isClaim ? 'claim' : 'algorithm') : folder + '0'
       const downloadresult = await downloadurl(what.url, filePath)
       if (downloadresult !== true) {
         // download failed, bail out
@@ -303,7 +306,7 @@ async function dowloadAsset(
           txId,
           params
         )
-        if (i === 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
+        if (i === 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + (isClaim ? 'claim' : 'algorithm')
         else filePath = folder + i
         console.log('Trying to download ' + consumeUrl + 'to ' + filePath)
         const downloadresult = await downloadurl(consumeUrl, filePath)
