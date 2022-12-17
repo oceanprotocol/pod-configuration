@@ -281,7 +281,12 @@ async function downloadurl(url, target) {
     await pipeline(
       got.stream(url, {
         timeout: {
-          request: 10000
+          lookup: 100,
+          connect: 1000,
+          secureConnect: 1000,
+          socket: 10000,
+          send: 10000,
+          response: 10000
         }
       }),
       fs.createWriteStream(target)
