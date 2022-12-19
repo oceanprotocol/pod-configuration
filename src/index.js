@@ -309,9 +309,9 @@ async function downloadurl(url, target, reference, stopWatch) {
           lookup: 100,
           connect: 1000,
           secureConnect: 1000,
-          socket: 10000,
+          socket: 60000,
           send: reference?.remainingTime || 10000,
-          response: reference?.remainingTime || 10000
+          response: reference?.remainingTime || 30000
         }
       }),
       fs.createWriteStream(target)
