@@ -303,6 +303,7 @@ async function dowloadAsset(
 async function downloadurl(url, target, reference, stopWatch) {
   console.log('Downloading to ' + target)
   try {
+    const timeout = reference?.remainingTime && reference?.remainingTime * 1000
     await pipeline(
       got.stream(url, {
         timeout: {
@@ -310,8 +311,8 @@ async function downloadurl(url, target, reference, stopWatch) {
           connect: 1000,
           secureConnect: 1000,
           socket: 60000,
-          send: reference?.remainingTime || 10000,
-          response: reference?.remainingTime || 30000
+          send: timeout || 10000,
+          response: timeout || 30000
         }
       }),
       fs.createWriteStream(target)
