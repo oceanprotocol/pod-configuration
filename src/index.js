@@ -47,6 +47,7 @@ program
 async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   let status = 30
   const inputsDir = `${path}/inputs`
+  let stopWatch = process.hrtime()
   try {
     fs.mkdirSync(inputsDir)
     fs.chmodSync(inputsDir, 777)
@@ -93,6 +94,11 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     )
   }
   const aquariusURL = stages[0].output.metadataUri
+  stopWatch = process.hrtime(stopWatch)
+  const remainingTime = stages[0].compute.maxtime
+  const reference = {
+    remainingTime: remainingTime > 0 ? remainingTime - stopWatch[0] : 10000
+  }
   console.log('========== Fetching input assets ============')
   const inputs = stages.reduce((acc, { input }) => [...acc, ...input], [])
   for (var i = 0; i < inputs.length; i++) {
@@ -103,7 +109,14 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     } catch (e) {
       console.error(e)
     }
-    const thisStatus = await dowloadAsset(aquariusURL, inputs[i], folder, ddoDir)
+    const thisStatus = await dowloadAsset(
+      aquariusURL,
+      inputs[i],
+      folder,
+      ddoDir,
+      reference,
+      stopWatch
+    )
     if (!thisStatus) status = 31
   }
   console.log('========== Done with inputs, moving to algo ============')
@@ -183,7 +196,9 @@ async function dowloadAsset(
   what,
   folder,
   ddoFolder,
-  useAlgorithmNameInsteadOfIndex = false
+  useAlgorithmNameInsteadOfIndex = false,
+  reference = {},
+  stopWatch = null
 ) {
   let ddo = null
   console.log('Downloading...')
@@ -207,7 +222,12 @@ async function dowloadAsset(
       for (let x = 0; x < what.url.length; x++) {
         if (x === 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + x
-        const downloadresult = await downloadurl(what.url[x], filePath)
+        const downloadresult = await downloadurl(
+          what.url[x],
+          filePath,
+          reference,
+          stopWatch
+        )
         if (downloadresult !== true) {
           // download failed, bail out
           return false
@@ -215,7 +235,7 @@ async function dowloadAsset(
       }
     } else {
       filePath = useAlgorithmNameInsteadOfIndex ? folder + 'algorithm' : folder + '0'
-      const downloadresult = await downloadurl(what.url, filePath)
+      const downloadresult = await downloadurl(what.url, filePath, reference, stopWatch)
       if (downloadresult !== true) {
         // download failed, bail out
         return false
@@ -254,7 +274,12 @@ async function dowloadAsset(
         if (i === 0 && useAlgorithmNameInsteadOfIndex) filePath = folder + 'algorithm'
         else filePath = folder + i
         console.log('Trying to download ' + consumeUrl + 'to ' + filePath)
-        const downloadresult = await downloadurl(consumeUrl, filePath)
+        const downloadresult = await downloadurl(
+          consumeUrl,
+          filePath,
+          reference,
+          stopWatch
+        )
         if (downloadresult !== true) {
           // download failed, bail out
           return false
@@ -275,7 +300,7 @@ async function dowloadAsset(
 /**
  * Downloads url to target. Returns true is success, false otherwise
  */
-async function downloadurl(url, target) {
+async function downloadurl(url, target, reference, stopWatch) {
   console.log('Downloading to ' + target)
   try {
     await pipeline(
@@ -285,12 +310,16 @@ async function downloadurl(url, target) {
           connect: 1000,
           secureConnect: 1000,
           socket: 10000,
-          send: 10000,
-          response: 10000
+          send: reference?.remainingTime || 10000,
+          response: reference?.remainingTime || 10000
         }
       }),
       fs.createWriteStream(target)
     )
+    if (reference?.remainingTime && stopWatch) {
+      stopWatch = process.hrtime(stopWatch)
+      reference.remainingTime = reference.remainingTime - stopWatch[0]
+    }
     console.log('Downloaded OK')
     return true
   } catch (e) {
