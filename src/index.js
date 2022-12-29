@@ -309,6 +309,7 @@ async function downloadurl(url, target, reference, stopWatch) {
   try {
     stopWatch = process.hrtime(stopWatch)
     const timeout = (reference.maxtime - stopWatch[0]) * 1000
+    console.log('Download response timeout: ' + timeout + '.')
     stopWatch = process.hrtime(stopWatch)
     await pipeline(
       got.stream(url, {
