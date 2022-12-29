@@ -95,10 +95,11 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
   }
   const aquariusURL = stages[0].output.metadataUri
   stopWatch = process.hrtime(stopWatch)
-  const remainingTime = stages[0].compute.maxtime
+  const maxtime = stages[0].compute && stages[0].compute.maxtime
   const reference = {
-    remainingTime: remainingTime > 0 ? remainingTime - stopWatch[0] : 10000
+    maxtime: maxtime > 0 ? maxtime - stopWatch[0] : 10000
   }
+  stopWatch = process.hrtime(stopWatch)
   console.log('========== Fetching input assets ============')
   const inputs = stages.reduce((acc, { input }) => [...acc, ...input], [])
   for (var i = 0; i < inputs.length; i++) {
@@ -114,6 +115,7 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
       inputs[i],
       folder,
       ddoDir,
+      false,
       reference,
       stopWatch
     )
@@ -142,7 +144,9 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
           algos[0],
           algoPath,
           ddoDir,
-          true
+          true,
+          reference,
+          stopWatch
         )
         if (!thisStatus) status = 32
       }
@@ -303,7 +307,9 @@ async function dowloadAsset(
 async function downloadurl(url, target, reference, stopWatch) {
   console.log('Downloading to ' + target)
   try {
-    const timeout = reference?.remainingTime && reference?.remainingTime * 1000
+    stopWatch = process.hrtime(stopWatch)
+    const timeout = (reference.maxtime - stopWatch[0]) * 1000
+    stopWatch = process.hrtime(stopWatch)
     await pipeline(
       got.stream(url, {
         timeout: {
@@ -317,10 +323,6 @@ async function downloadurl(url, target, reference, stopWatch) {
       }),
       fs.createWriteStream(target)
     )
-    if (reference?.remainingTime && stopWatch) {
-      stopWatch = process.hrtime(stopWatch)
-      reference.remainingTime = reference.remainingTime - stopWatch[0]
-    }
     console.log('Downloaded OK')
     return true
   } catch (e) {
