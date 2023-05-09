@@ -281,7 +281,7 @@ async function downloadurl(url, target) {
     await pipeline(
       got.stream(url, {
         timeout: {
-          request: 10000
+          request: parseInt(process.env.REQUEST_TIMEOUT) || 30000
         }
       }),
       fs.createWriteStream(target)
