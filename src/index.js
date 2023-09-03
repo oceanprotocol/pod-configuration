@@ -17,7 +17,7 @@ var pgpool = new pg.Pool({
   password: process.env.POSTGRES_PASSWORD,
   host: process.env.POSTGRES_HOST,
   port: process.env.POSTGRES_PORT,
-  max: 10, // max number of clients in the pool
+  max: 1, // max number of clients in the pool
   idleTimeoutMillis: 30000 // how long a client is allowed to remain idle before being closed
 })
 let Web3
@@ -167,8 +167,8 @@ async function main({ workflow: workflowPath, path, workflowid, verbose }) {
     await pgpool.query(query, sqlarr)
     console.log('Updated ' + workflowid + ' with status ' + status)
   } catch (e) {
-    console.error('Failed sql status update')
-    console.error(e)
+    console.log('Failed sql status update')
+    console.log(e)
   }
 }
 
