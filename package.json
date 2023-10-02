@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "commander": "^4.0.1",
-    "ethereumjs-wallet": "^0.6.3",
+    "ethereumjs-wallet": "^1.0.2",
     "got": "^10.2.1",
     "pg": "^8.11.3",
     "pg-pool": "^3.6.1",
