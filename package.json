@@ -20,7 +20,7 @@
   "dependencies": {
     "commander": "^4.0.1",
     "ethereumjs-wallet": "^0.6.3",
-    "got": "^10.2.1",
+    "got": "^14.0.0",
     "pg": "^8.11.3",
     "pg-pool": "^3.6.1",
     "stream": "0.0.2",
