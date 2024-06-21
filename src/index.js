@@ -343,7 +343,12 @@ async function getEndpointURL(providerURL, serviceName) {
 async function getFilesInfo(providerUrl, did, serviceId) {
   const args = { did: did, serviceId: serviceId }
   const endpoint = await getEndpointURL(providerUrl, 'fileinfo')
-  const url = providerUrl + '/' + endpoint[1]
+  let url = ''
+  if (!providerUrl.endsWith('/')) {
+    url = providerUrl + '/' + endpoint[1]
+  } else {
+    url = providerUrl + endpoint[1]
+  }
   console.log(url)
   try {
     const response = await fetch(url, {
@@ -377,8 +382,13 @@ async function getProviderDownloadUrl(
   const sign = web3Accounts.sign(consumerMessage, process.env.PRIVATE_KEY)
   const { signature } = sign
   const checksumAddress = Web3.utils.toChecksumAddress(accountId)
-
-  let consumeUrl = providerURL + endpoint[1]
+  let consumeUrl = ''
+  if (!providerURL.endsWith('/')) {
+    consumeUrl = providerURL + '/' + endpoint[1]
+  } else {
+    consumeUrl = providerURL + endpoint[1]
+  }
+  console.log(consumeUrl)
   consumeUrl += `?fileIndex=${fileIndex}`
   consumeUrl += `&documentId=${did}`
   consumeUrl += `&transferTxId=${transferTxId}`
