@@ -333,7 +333,7 @@ async function getEndpointURL(providerURL, serviceName) {
   })
   const providerData = await response.json()
   for (const i in providerData.serviceEndpoints) {
-    if (i === serviceName) {
+    if (i.toLowerCase() === serviceName.toLowerCase()) {
       return providerData.serviceEndpoints[i]
     }
   }
